@@ -2,16 +2,14 @@ pipeline {
     agent any
 
     environment {
-        NODEJS_VERSION = '20'
         REGISTRY = 'localhost:5000'
         IMAGE_TAG = "v1.0.${BUILD_NUMBER}"
         BACKEND_IMAGE = "${REGISTRY}/bagly-backend"
         FRONTEND_IMAGE = "${REGISTRY}/bagly-frontend"
     }
 
-    tools {
-        nodejs "${NODEJS_VERSION}"
-    }
+    // Node.js, Docker CLI e Trivy já estão instalados na imagem customizada do Jenkins
+    // Ver: infra/jenkins/Dockerfile
 
     stages {
         // =============================================

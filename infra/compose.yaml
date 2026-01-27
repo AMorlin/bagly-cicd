@@ -2,14 +2,20 @@
 # Bagly CI/CD Infrastructure Stack
 # Jenkins + SonarQube + PostgreSQL + Registry
 # ===========================================
-# Usage: docker compose -f infra/compose.yaml --env-file .env up -d
+# Usage:
+#   cd infra
+#   docker compose --env-file .env up -d --build
 
 services:
   # ===========================================
-  # Jenkins CI Server
+  # Jenkins CI Server (Custom Image)
+  # Includes: Docker CLI, Trivy, Node.js 20
   # ===========================================
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    image: bagly-jenkins:latest
     container_name: bagly-jenkins
     restart: unless-stopped
     privileged: true
@@ -24,6 +30,12 @@ services:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
     networks:
       - bagly-ci
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # ===========================================
   # SonarQube - Code Quality Analysis
@@ -47,6 +59,12 @@ services:
       - sonarqube_extensions:/opt/sonarqube/extensions
     networks:
       - bagly-ci
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   # ===========================================
   # PostgreSQL for SonarQube
