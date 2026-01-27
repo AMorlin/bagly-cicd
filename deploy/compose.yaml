@@ -1,0 +1,137 @@
+# ===========================================
+# Bagly Application Deploy Stack
+# Frontend + Backend + PostgreSQL + Redis
+# ===========================================
+# Usage:
+#   export IMAGE_TAG=v1.0.1
+#   docker compose -f deploy/compose.yaml --env-file .env up -d
+
+services:
+  # ===========================================
+  # PostgreSQL Database
+  # ===========================================
+  database:
+    image: postgres:15-alpine
+    container_name: bagly-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - bagly_db_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - bagly-app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Redis Cache
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: bagly-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - bagly_redis_data:/data
+    networks:
+      - bagly-app
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Database Migrations
+  # ===========================================
+  migrations:
+    image: localhost:5000/bagly-backend:${IMAGE_TAG:-latest}
+    container_name: bagly-migrations
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+    command: npx prisma migrate deploy
+    networks:
+      - bagly-app
+
+  # ===========================================
+  # Backend API
+  # ===========================================
+  backend:
+    image: localhost:5000/bagly-backend:${IMAGE_TAG:-latest}
+    container_name: bagly-backend
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - PORT=3333
+      - NODE_ENV=production
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - UPLOAD_PROVIDER=${UPLOAD_PROVIDER:-local}
+      - UPLOAD_LOCAL_PATH=/app/uploads
+      - EMAIL_FROM=${EMAIL_FROM}
+      # Email: Resend API (option 1)
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      # Email: SMTP (option 2)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+    volumes:
+      - bagly_uploads:/app/uploads
+    ports:
+      - "3333:3333"
+    networks:
+      - bagly-app
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================
+  # Frontend Web App
+  # ===========================================
+  frontend:
+    image: localhost:5000/bagly-frontend:${IMAGE_TAG:-latest}
+    container_name: bagly-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - bagly-app
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  bagly-app:
+    driver: bridge
+
+volumes:
+  bagly_db_data:
+  bagly_redis_data:
+  bagly_uploads:

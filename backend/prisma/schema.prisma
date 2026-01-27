@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  cpf       String   @unique
+  email     String
+  name      String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  claims   Claim[]
+  otpCodes OtpCode[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  code      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId, code])
+}
+
+model Claim {
+  id       String      @id @default(cuid())
+  protocol String      @unique @default(cuid())
+  status   ClaimStatus @default(IN_PROGRESS)
+
+  // Dados pessoais (snapshot)
+  fullName String
+  cpf      String
+  phone    String
+  email    String
+
+  // Dados do voo
+  flightDate  DateTime
+  locator     String
+  airline     String
+  airportCode String
+  airportName String
+  baggageSize BaggageSize
+  milesClub   String?
+  milesNumber String?
+
+  // Descrição
+  damageDescription String
+  baggageContents   String
+
+  // Proposta (preenchido pelo admin)
+  proposalText   String?
+  proposalValue  Decimal?        @db.Decimal(10, 2)
+  proposalStatus ProposalStatus?
+
+  // Relacionamentos
+  userId String
+  user   User         @relation(fields: [userId], references: [id])
+  images ClaimImage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ClaimImage {
+  id        String   @id @default(cuid())
+  url       String
+  filename  String
+  size      Int
+  mimeType  String
+  claimId   String
+  claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([claimId])
+}
+
+enum ClaimStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BaggageSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}

@@ -1,0 +1,96 @@
+# ===========================================
+# Bagly CI/CD Infrastructure Stack
+# Jenkins + SonarQube + PostgreSQL + Registry
+# ===========================================
+# Usage: docker compose -f infra/compose.yaml --env-file .env up -d
+
+services:
+  # ===========================================
+  # Jenkins CI Server
+  # ===========================================
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: bagly-jenkins
+    restart: unless-stopped
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+    networks:
+      - bagly-ci
+
+  # ===========================================
+  # SonarQube - Code Quality Analysis
+  # ===========================================
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: bagly-sonarqube
+    restart: unless-stopped
+    depends_on:
+      sonar-db:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/${SONAR_DB_NAME:-sonarqube}
+      - SONAR_JDBC_USERNAME=${SONAR_DB_USER:-sonar}
+      - SONAR_JDBC_PASSWORD=${SONAR_DB_PASSWORD}
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - bagly-ci
+
+  # ===========================================
+  # PostgreSQL for SonarQube
+  # ===========================================
+  sonar-db:
+    image: postgres:15-alpine
+    container_name: bagly-sonar-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${SONAR_DB_USER:-sonar}
+      - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD}
+      - POSTGRES_DB=${SONAR_DB_NAME:-sonarqube}
+    volumes:
+      - sonar_db_data:/var/lib/postgresql/data
+    networks:
+      - bagly-ci
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER:-sonar} -d ${SONAR_DB_NAME:-sonarqube}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Docker Registry (Local)
+  # ===========================================
+  registry:
+    image: registry:2
+    container_name: bagly-registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+    networks:
+      - bagly-ci
+
+networks:
+  bagly-ci:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  sonar_db_data:
+  registry_data:
