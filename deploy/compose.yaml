@@ -60,7 +60,7 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?schema=public
-    command: npx prisma migrate deploy
+    command: node node_modules/prisma/build/index.js migrate deploy
     networks:
       - bagly-app
 
