@@ -141,6 +141,14 @@ A imagem `bagly-jenkins` inclui todas as ferramentas necessárias:
    - `bagly-backend`
 4. Gerar token em **My Account → Security**
 5. Criar Quality Gate com cobertura mínima de 50%
+6. **Configurar Webhook** (obrigatório para o Quality Gate funcionar no pipeline):
+   - Ir em **Administration → Configuration → Webhooks**
+   - Clicar **Create**
+   - Nome: `Jenkins`
+   - URL: `http://jenkins:8080/sonarqube-webhook/`
+   - Salvar
+
+> **Importante**: Sem o webhook, o stage `waitForQualityGate` do pipeline ficará aguardando indefinidamente até estourar o timeout, pois o Jenkins depende dessa notificação do SonarQube para saber que o processamento do relatório foi concluído.
 
 ## 2. Executar Pipeline
 

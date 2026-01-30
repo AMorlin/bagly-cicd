@@ -1,7 +1,7 @@
 FROM node:20-slim AS base
 
-# Install OpenSSL for Prisma
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL for Prisma and upgrade all packages to fix vulnerabilities
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 WORKDIR /app
@@ -26,9 +26,12 @@ RUN adduser --system --uid 1001 fastify
 RUN mkdir -p /app/uploads && chown fastify:nodejs /app/uploads
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package-lock.json ./package-lock.json
 COPY --from=builder /app/prisma ./prisma
+
+# Install only production dependencies (excludes devDependencies like vite, eslint, etc.)
+RUN npm ci --omit=dev && npx prisma generate
 
 USER fastify
 
