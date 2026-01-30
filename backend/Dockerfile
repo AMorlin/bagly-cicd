@@ -30,8 +30,10 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 COPY --from=builder /app/prisma ./prisma
 
-# Update npm to fix vulnerabilities in its bundled dependencies (cross-spawn, glob, tar)
-RUN npm install -g npm@latest
+# Update npm and patch tar to fix vulnerabilities in bundled dependencies
+RUN npm install -g npm@latest && \
+    cd /usr/local/lib/node_modules/npm && \
+    npm install tar@7.5.7 --save
 
 # Install only production dependencies (excludes devDependencies like vite, eslint, etc.)
 RUN npm ci --omit=dev && npx prisma generate
