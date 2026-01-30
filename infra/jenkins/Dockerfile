@@ -32,6 +32,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Instalar SonarQube Scanner CLI
+ENV SONAR_SCANNER_VERSION=6.2.1.4610
+RUN curl -fsSL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux-x64.zip -o /tmp/sonar-scanner.zip \
+    && unzip /tmp/sonar-scanner.zip -d /opt \
+    && ln -s /opt/sonar-scanner-${SONAR_SCANNER_VERSION}-linux-x64/bin/sonar-scanner /usr/local/bin/sonar-scanner \
+    && rm /tmp/sonar-scanner.zip
+
 # Adicionar jenkins ao grupo docker
 RUN groupadd -f docker && usermod -aG docker jenkins
 

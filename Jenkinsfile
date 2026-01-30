@@ -101,7 +101,32 @@ pipeline {
             environment {
                 SONAR_TOKEN = credentials('sonar-token')
             }
-            parallel {
+            stages {
+                stage('Backend Sonar') {
+                    steps {
+                        dir('backend') {
+                            withSonarQubeEnv('SonarQube') {
+                                sh '''
+                                    sonar-scanner \
+                                        -Dsonar.projectKey=bagly-backend \
+                                        -Dsonar.projectName="Bagly Backend" \
+                                        -Dsonar.sources=src \
+                                        -Dsonar.tests=src \
+                                        -Dsonar.test.inclusions=**/*.test.ts \
+                                        -Dsonar.exclusions=**/node_modules/**,**/*.test.ts,**/coverage/**,**/prisma/** \
+                                        -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+                                '''
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            timeout(time: 10, unit: 'MINUTES') {
+                                waitForQualityGate abortPipeline: true
+                            }
+                        }
+                    }
+                }
                 stage('Frontend Sonar') {
                     steps {
                         dir('frontend') {
@@ -120,30 +145,12 @@ pipeline {
                             }
                         }
                     }
-                }
-                stage('Backend Sonar') {
-                    steps {
-                        dir('backend') {
-                            withSonarQubeEnv('SonarQube') {
-                                sh '''
-                                    sonar-scanner \
-                                        -Dsonar.projectKey=bagly-backend \
-                                        -Dsonar.projectName="Bagly Backend" \
-                                        -Dsonar.sources=src \
-                                        -Dsonar.tests=src \
-                                        -Dsonar.test.inclusions=**/*.test.ts \
-                                        -Dsonar.exclusions=**/node_modules/**,**/*.test.ts,**/coverage/**,**/prisma/** \
-                                        -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
-                                '''
+                    post {
+                        always {
+                            timeout(time: 10, unit: 'MINUTES') {
+                                waitForQualityGate abortPipeline: true
                             }
                         }
-                    }
-                }
-            }
-            post {
-                always {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
                     }
                 }
             }

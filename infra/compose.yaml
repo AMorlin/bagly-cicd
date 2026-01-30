@@ -41,7 +41,7 @@ services:
   # SonarQube - Code Quality Analysis
   # ===========================================
   sonarqube:
-    image: sonarqube:lts-community
+    image: sonarqube:community
     container_name: bagly-sonarqube
     restart: unless-stopped
     depends_on:
