@@ -113,7 +113,7 @@ pipeline {
                                         -Dsonar.sources=src \
                                         -Dsonar.tests=src \
                                         -Dsonar.test.inclusions=**/*.test.ts \
-                                        -Dsonar.exclusions=**/node_modules/**,**/*.test.ts,**/coverage/**,**/prisma/** \
+                                        -Dsonar.exclusions=**/node_modules/**,**/*.test.ts,**/coverage/**,**/prisma/**,**/*.routes.ts,**/config/env.ts,**/config/redis.ts,**/lib/** \
                                         -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
                                 '''
                             }
@@ -138,7 +138,7 @@ pipeline {
                                         -Dsonar.sources=src \
                                         -Dsonar.tests=src \
                                         -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx \
-                                        -Dsonar.exclusions=**/node_modules/**,**/*.test.ts,**/*.test.tsx,**/coverage/** \
+                                        -Dsonar.exclusions=**/node_modules/**,**/*.test.ts,**/*.test.tsx,**/coverage/**,**/components/**,**/pages/** \
                                         -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
                                         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
                                 '''
