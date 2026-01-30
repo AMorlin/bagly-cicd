@@ -236,9 +236,8 @@ pipeline {
         // =============================================
         stage('Push & Tag') {
             when {
-                allOf {
-                    branch 'main'
-                    not { changeRequest() }
+                expression {
+                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
                 }
             }
             stages {
