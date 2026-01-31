@@ -4,7 +4,7 @@ import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
 import multipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
-import { join } from 'node:path'
+import { resolve } from 'node:path'
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { userRoutes } from './modules/user/user.routes.js'
 import { claimRoutes } from './modules/claim/claim.routes.js'
@@ -37,7 +37,7 @@ app.register(multipart, {
 })
 
 app.register(fastifyStatic, {
-  root: join(process.cwd(), process.env.UPLOAD_LOCAL_PATH || 'uploads'),
+  root: resolve(process.cwd(), process.env.UPLOAD_LOCAL_PATH || 'uploads'),
   prefix: '/uploads/',
   decorateReply: false,
 })
