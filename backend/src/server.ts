@@ -53,6 +53,10 @@ app.get('/api/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
 })
 
+app.get('/api/version', async () => {
+  return { version: process.env.APP_VERSION || 'dev' }
+})
+
 const start = async () => {
   try {
     const port = Number.parseInt(process.env.PORT || '3333', 10)

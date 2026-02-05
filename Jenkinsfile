@@ -173,14 +173,14 @@ pipeline {
                 stage('Docker Frontend') {
                     steps {
                         dir('frontend') {
-                            sh "docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} -t ${FRONTEND_IMAGE}:latest ."
+                            sh "docker build --build-arg APP_VERSION=${IMAGE_TAG} -t ${FRONTEND_IMAGE}:${IMAGE_TAG} -t ${FRONTEND_IMAGE}:latest ."
                         }
                     }
                 }
                 stage('Docker Backend') {
                     steps {
                         dir('backend') {
-                            sh "docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} -t ${BACKEND_IMAGE}:latest ."
+                            sh "docker build --build-arg APP_VERSION=${IMAGE_TAG} -t ${BACKEND_IMAGE}:${IMAGE_TAG} -t ${BACKEND_IMAGE}:latest ."
                         }
                     }
                 }

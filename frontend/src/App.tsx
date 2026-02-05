@@ -11,10 +11,15 @@ import ConteOQueAconteceu from '@/pages/claims/new/ConteOQueAconteceu'
 import RevisaoDados from '@/pages/claims/new/RevisaoDados'
 import Confirmacao from '@/pages/claims/new/Confirmacao'
 
+const appVersion = import.meta.env.VITE_APP_VERSION || 'dev'
+
 function App() {
   return (
     <>
       <div className="min-h-screen bg-neutral-50">
+        <div className="w-full bg-primary px-4 py-1 text-center text-xs text-white">
+          Bagly {appVersion}
+        </div>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/cpf" element={<InformeCPF />} />

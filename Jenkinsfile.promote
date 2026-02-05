@@ -1,0 +1,191 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'TAG',
+            description: 'Tag da versão a ser promovida (ex: v1.0.5)',
+            trim: true
+        )
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['DEV', 'STG', 'PROD'],
+            description: 'Ambiente de destino da promoção'
+        )
+    }
+
+    environment {
+        REGISTRY = 'localhost:5000'
+        BACKEND_IMAGE = "${REGISTRY}/bagly-backend"
+        FRONTEND_IMAGE = "${REGISTRY}/bagly-frontend"
+    }
+
+    stages {
+        // =============================================
+        // STAGE 1: Validar Parâmetros
+        // =============================================
+        stage('Validate Parameters') {
+            steps {
+                script {
+                    if (!params.TAG?.trim()) {
+                        error "Parâmetro TAG é obrigatório. Informe a tag da versão (ex: v1.0.5)."
+                    }
+
+                    def tagPattern = ~/^v\d+\.\d+\.\d+$/
+                    if (!(params.TAG.trim() ==~ tagPattern)) {
+                        error "TAG '${params.TAG}' não segue o padrão de versionamento semântico (ex: v1.0.5)."
+                    }
+
+                    echo "=========================================="
+                    echo "  Promoção solicitada"
+                    echo "  TAG:         ${params.TAG}"
+                    echo "  ENVIRONMENT: ${params.ENVIRONMENT}"
+                    echo "=========================================="
+                }
+            }
+        }
+
+        // =============================================
+        // STAGE 2: Validar Cadeia de Promoção
+        // =============================================
+        stage('Validate Promotion Chain') {
+            steps {
+                script {
+                    def tag = params.TAG.trim()
+                    def env = params.ENVIRONMENT
+
+                    if (env == 'DEV') {
+                        // Para DEV, a imagem base (tag original) precisa existir no registry
+                        echo "Verificando se a imagem base ${tag} existe no registry..."
+
+                        def backendExists = sh(
+                            script: "docker manifest inspect ${BACKEND_IMAGE}:${tag} > /dev/null 2>&1",
+                            returnStatus: true
+                        )
+                        def frontendExists = sh(
+                            script: "docker manifest inspect ${FRONTEND_IMAGE}:${tag} > /dev/null 2>&1",
+                            returnStatus: true
+                        )
+
+                        if (backendExists != 0 || frontendExists != 0) {
+                            error "Imagem base com tag '${tag}' não encontrada no registry. Execute o pipeline principal primeiro."
+                        }
+
+                        echo "Imagem base ${tag} encontrada. Promoção para DEV autorizada."
+                    }
+
+                    if (env == 'STG') {
+                        // Para STG, precisa existir a tag dev-<TAG>
+                        echo "Verificando se a tag dev-${tag} existe no registry..."
+
+                        def backendDev = sh(
+                            script: "docker manifest inspect ${BACKEND_IMAGE}:dev-${tag} > /dev/null 2>&1",
+                            returnStatus: true
+                        )
+                        def frontendDev = sh(
+                            script: "docker manifest inspect ${FRONTEND_IMAGE}:dev-${tag} > /dev/null 2>&1",
+                            returnStatus: true
+                        )
+
+                        if (backendDev != 0 || frontendDev != 0) {
+                            error "Tag 'dev-${tag}' não encontrada. Promova para DEV antes de promover para STG."
+                        }
+
+                        echo "Tag dev-${tag} encontrada. Promoção para STG autorizada."
+                    }
+
+                    if (env == 'PROD') {
+                        // Para PROD, precisa existir a tag stg-<TAG>
+                        echo "Verificando se a tag stg-${tag} existe no registry..."
+
+                        def backendStg = sh(
+                            script: "docker manifest inspect ${BACKEND_IMAGE}:stg-${tag} > /dev/null 2>&1",
+                            returnStatus: true
+                        )
+                        def frontendStg = sh(
+                            script: "docker manifest inspect ${FRONTEND_IMAGE}:stg-${tag} > /dev/null 2>&1",
+                            returnStatus: true
+                        )
+
+                        if (backendStg != 0 || frontendStg != 0) {
+                            error "Tag 'stg-${tag}' não encontrada. Promova para STG antes de promover para PROD."
+                        }
+
+                        echo "Tag stg-${tag} encontrada. Promoção para PROD autorizada."
+                    }
+                }
+            }
+        }
+
+        // =============================================
+        // STAGE 3: Promover Imagens (docker tag + push)
+        // =============================================
+        stage('Promote Images') {
+            steps {
+                script {
+                    def tag = params.TAG.trim()
+                    def envPrefix = params.ENVIRONMENT.toLowerCase()
+                    def newTag = "${envPrefix}-${tag}"
+
+                    // Determinar a tag de origem
+                    def sourceTag
+                    switch (params.ENVIRONMENT) {
+                        case 'DEV':
+                            sourceTag = tag
+                            break
+                        case 'STG':
+                            sourceTag = "dev-${tag}"
+                            break
+                        case 'PROD':
+                            sourceTag = "stg-${tag}"
+                            break
+                    }
+
+                    echo "=========================================="
+                    echo "  Promovendo imagens"
+                    echo "  Origem:  ${sourceTag}"
+                    echo "  Destino: ${newTag}"
+                    echo "=========================================="
+
+                    // Pull da imagem de origem (caso não esteja local)
+                    sh "docker pull ${BACKEND_IMAGE}:${sourceTag} || true"
+                    sh "docker pull ${FRONTEND_IMAGE}:${sourceTag} || true"
+
+                    // Tag das imagens
+                    sh "docker tag ${BACKEND_IMAGE}:${sourceTag} ${BACKEND_IMAGE}:${newTag}"
+                    sh "docker tag ${FRONTEND_IMAGE}:${sourceTag} ${FRONTEND_IMAGE}:${newTag}"
+
+                    echo "Docker tag criada: ${BACKEND_IMAGE}:${newTag}"
+                    echo "Docker tag criada: ${FRONTEND_IMAGE}:${newTag}"
+
+                    // Push para o registry
+                    sh "docker push ${BACKEND_IMAGE}:${newTag}"
+                    sh "docker push ${FRONTEND_IMAGE}:${newTag}"
+
+                    echo "=========================================="
+                    echo "  Promoção concluída com sucesso!"
+                    echo "  ${BACKEND_IMAGE}:${sourceTag}  →  ${BACKEND_IMAGE}:${newTag}"
+                    echo "  ${FRONTEND_IMAGE}:${sourceTag}  →  ${FRONTEND_IMAGE}:${newTag}"
+                    echo "=========================================="
+                    echo ""
+                    echo "Para fazer o deploy manual, use:"
+                    echo "  export IMAGE_TAG=${newTag}"
+                    echo "  docker compose -f deploy/compose.yaml up -d"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker image prune -f || true'
+        }
+        success {
+            echo "Pipeline de promoção concluído com sucesso!"
+            echo "Tag promovida: ${params.ENVIRONMENT.toLowerCase()}-${params.TAG}"
+        }
+        failure {
+            echo "Pipeline de promoção falhou! Verifique os logs acima."
+        }
+    }
+}

@@ -21,7 +21,7 @@ Plataforma de reclamações de bagagens danificadas em voos aéreos, com pipelin
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                         PIPELINE CI                              │
+│                     PIPELINE CI (Jenkinsfile)                     │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  1.Checkout ─► 2.Build ─► 3.Tests ─► 4.Sonar ─► 5.Trivy Repo    │
@@ -30,6 +30,20 @@ Plataforma de reclamações de bagagens danificadas em voos aéreos, com pipelin
 │                                   Coverage≥50%?  HIGH/CRIT?      │
 │                                         │            │           │
 │  6.Docker Build ─► 7.Trivy Image ─► 8.Push & Tag (main only)    │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│              PIPELINE DE PROMOÇÃO (Jenkinsfile.promote)           │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Parâmetros: TAG (ex: v1.0.5) + ENVIRONMENT (DEV/STG/PROD)      │
+│                                                                  │
+│  1. Validar Parâmetros ─► 2. Validar Cadeia ─► 3. Promover      │
+│                                                                  │
+│  Cadeia obrigatória:  DEV ──► STG ──► PROD                      │
+│                                                                  │
+│  Tags geradas:  dev-v1.0.5  │  stg-v1.0.5  │  prod-v1.0.5      │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -72,6 +86,7 @@ bagly-cicd/
 │   ├── compose.yaml          # App + PostgreSQL + Redis
 │   └── .env.example
 ├── Jenkinsfile               # Pipeline CI (8 stages)
+├── Jenkinsfile.promote        # Pipeline de Promoção (DEV → STG → PROD)
 └── README.md
 ```
 
@@ -189,9 +204,76 @@ Exemplos:
 - Build 15: `v1.0.15`
 - Build 100: `v1.0.100`
 
-## 3. Deploy Manual
+A versão é injetada no build via `--build-arg APP_VERSION`:
+- **Frontend**: Exibida no topo de todas as páginas via `VITE_APP_VERSION`
+- **Backend**: Disponível via endpoint `GET /api/version`
 
-### 3.1 Criar arquivo de ambiente
+## 3. Pipeline de Promoção (Delivery)
+
+### 3.1 Criar job de promoção no Jenkins
+
+1. **New Item** → Pipeline
+2. Nome: `bagly-promote`
+3. Marcar **This project is parameterized**
+4. **Pipeline from SCM** → Git
+5. URL: `https://github.com/SEU-USUARIO/bagly-cicd.git`
+6. Credentials: `github-credentials`
+7. Branch: `*/main`
+8. **Script Path**: `Jenkinsfile.promote`
+
+> Os parâmetros (`TAG` e `ENVIRONMENT`) são definidos automaticamente pelo `Jenkinsfile.promote`.
+
+### 3.2 Parâmetros do pipeline
+
+| Parâmetro | Tipo | Valores | Exemplo |
+|-----------|------|---------|---------|
+| `TAG` | String | Versão semântica | `v1.0.5` |
+| `ENVIRONMENT` | Choice | `DEV`, `STG`, `PROD` | `STG` |
+
+### 3.3 Tags geradas por ambiente
+
+| Ambiente | Tag gerada | Origem |
+|----------|------------|--------|
+| DEV | `dev-v1.0.5` | `v1.0.5` (tag original) |
+| STG | `stg-v1.0.5` | `dev-v1.0.5` |
+| PROD | `prod-v1.0.5` | `stg-v1.0.5` |
+
+### 3.4 Cadeia de promoção obrigatória
+
+```
+v1.0.5 (base) ──► dev-v1.0.5 ──► stg-v1.0.5 ──► prod-v1.0.5
+```
+
+- Só promove para **STG** se existir `dev-<TAG>` no registry
+- Só promove para **PROD** se existir `stg-<TAG>` no registry
+- Tentar promover para PROD sem ter STG **falhará** o pipeline
+
+### 3.5 Exemplo de uso
+
+```bash
+# 1. Promover para DEV (a partir da tag base v1.0.5)
+# No Jenkins: Build with Parameters → TAG=v1.0.5, ENVIRONMENT=DEV
+
+# 2. Deploy manual em DEV
+cd deploy
+IMAGE_TAG=dev-v1.0.5 docker compose up -d
+
+# 3. Promover para STG (requer dev-v1.0.5)
+# No Jenkins: Build with Parameters → TAG=v1.0.5, ENVIRONMENT=STG
+
+# 4. Deploy manual em STG
+IMAGE_TAG=stg-v1.0.5 docker compose up -d
+
+# 5. Promover para PROD (requer stg-v1.0.5)
+# No Jenkins: Build with Parameters → TAG=v1.0.5, ENVIRONMENT=PROD
+
+# 6. Deploy manual em PROD
+IMAGE_TAG=prod-v1.0.5 docker compose up -d
+```
+
+## 4. Deploy Manual
+
+### 4.1 Criar arquivo de ambiente
 
 ```bash
 cd deploy
@@ -221,21 +303,23 @@ RESEND_API_KEY=re_xxxxx
 # SMTP_PASS=sua-app-password
 ```
 
-### 3.2 Subir aplicação
+### 4.2 Subir aplicação
 
 ```bash
 cd deploy
 docker compose --env-file .env up -d
 ```
 
-### 3.3 Acessar aplicação
+### 4.3 Acessar aplicação
 
-| Serviço | URL |
-|---------|-----|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:3333 |
+| Serviço | URL | Descrição |
+|---------|-----|-----------|
+| Frontend | http://localhost:3000 | Aplicação web (versão exibida no topo) |
+| Backend API | http://localhost:3333 | API REST |
+| Versão (API) | http://localhost:3333/api/version | Retorna a versão da imagem |
+| Health Check | http://localhost:3333/api/health | Status da API |
 
-### 3.4 Atualizar para nova versão
+### 4.4 Atualizar para nova versão
 
 ```bash
 # 1. Editar .env com nova tag
@@ -245,7 +329,7 @@ IMAGE_TAG=v1.0.2
 docker compose --env-file .env up -d
 ```
 
-## 4. Desenvolvimento Local
+## 5. Desenvolvimento Local
 
 ### Backend
 
@@ -278,7 +362,7 @@ npm run test
 npm run test:coverage
 ```
 
-## 5. Funcionalidades da Aplicação
+## 6. Funcionalidades da Aplicação
 
 ### Autenticação
 - Login via CPF + OTP (código por email)
@@ -291,7 +375,7 @@ npm run test:coverage
 - Acompanhar status da reclamação
 - Visualizar propostas de resolução
 
-## 6. Portas
+## 7. Portas
 
 | Serviço | Porta | Stack |
 |---------|-------|-------|
@@ -303,7 +387,7 @@ npm run test:coverage
 | SonarQube | 9000 | Infra |
 | Registry | 5000 | Infra |
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 ### Jenkins não consegue executar Docker
 

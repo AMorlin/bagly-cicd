@@ -6,9 +6,11 @@ COPY package*.json ./
 RUN npm ci
 
 FROM base AS builder
+ARG APP_VERSION=dev
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV VITE_APP_VERSION=${APP_VERSION}
 RUN npm run build
 
 FROM nginx:alpine AS runner

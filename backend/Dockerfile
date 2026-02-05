@@ -16,8 +16,10 @@ RUN npx prisma generate
 RUN npm run build
 
 FROM base AS runner
+ARG APP_VERSION=dev
 WORKDIR /app
 ENV NODE_ENV=production
+ENV APP_VERSION=${APP_VERSION}
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 fastify
