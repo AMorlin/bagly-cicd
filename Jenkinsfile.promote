@@ -1,0 +1,98 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'TAG', description: 'A tag original gerada pelo CI (ex: v1.0.1)', trim: true)
+        choice(name: 'ENVIRONMENT', choices: ['DEV', 'STG', 'PROD'], description: 'Para qual ambiente promover?')
+    }
+
+    environment {
+        REGISTRY = "localhost:5000"
+        // Lista das imagens que devem ser promovidas
+        IMAGES = "bagly-backend bagly-frontend"
+    }
+
+    stages {
+        stage('Validar Entrada') {
+            steps {
+                script {
+                    if (!params.TAG) {
+                        error "❌ O parâmetro TAG é obrigatório!"
+                    }
+                    echo "🚀 Iniciando promoção da versão ${params.TAG} para ${params.ENVIRONMENT}"
+                }
+            }
+        }
+
+        stage('Verificar Cadeia de Custódia (Regras)') {
+            steps {
+                script {
+                    def imagesList = IMAGES.split(' ')
+                    
+                    imagesList.each { imageName ->
+                        echo "🔍 Verificando regras para imagem: ${imageName}"
+                        
+                        // REGRA 1: DEV nasce da tag original (v1.0.X)
+                        if (params.ENVIRONMENT == 'DEV') {
+                            echo "✅ Origem válida: Build Original -> DEV"
+                            // Verifica se a imagem original existe no Registry
+                            sh "docker pull ${REGISTRY}/${imageName}:${params.TAG}"
+                        } 
+                        
+                        // REGRA 2: STG só nasce se existir a tag DEV
+                        else if (params.ENVIRONMENT == 'STG') {
+                            echo "🛡️ Verificando cadeia: DEV -> STG"
+                            try {
+                                sh "docker pull ${REGISTRY}/${imageName}:dev-${params.TAG}"
+                            } catch (Exception e) {
+                                error "⛔ PROMOÇÃO NEGADA: Não existe a tag 'dev-${params.TAG}'. Você deve promover para DEV primeiro!"
+                            }
+                        } 
+                        
+                        // REGRA 3: PROD só nasce se existir a tag STG
+                        else if (params.ENVIRONMENT == 'PROD') {
+                            echo "🛡️ Verificando cadeia: STG -> PROD"
+                            try {
+                                sh "docker pull ${REGISTRY}/${imageName}:stg-${params.TAG}"
+                            } catch (Exception e) {
+                                error "⛔ PROMOÇÃO NEGADA: Não existe a tag 'stg-${params.TAG}'. Você deve promover para STG primeiro!"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Promover (Retag & Push)') {
+            steps {
+                script {
+                    def imagesList = IMAGES.split(' ')
+                    def sourceTag = ""
+                    def targetTag = ""
+
+                    // Define qual tag baixar e qual nova tag criar
+                    if (params.ENVIRONMENT == 'DEV') {
+                        sourceTag = "${params.TAG}"       // Baixa v1.0.1
+                        targetTag = "dev-${params.TAG}"   // Cria dev-v1.0.1
+                    } else if (params.ENVIRONMENT == 'STG') {
+                        sourceTag = "dev-${params.TAG}"   // Baixa dev-v1.0.1
+                        targetTag = "stg-${params.TAG}"   // Cria stg-v1.0.1
+                    } else if (params.ENVIRONMENT == 'PROD') {
+                        sourceTag = "stg-${params.TAG}"   // Baixa stg-v1.0.1
+                        targetTag = "prod-${params.TAG}"  // Cria prod-v1.0.1
+                    }
+
+                    imagesList.each { imageName ->
+                        echo "🏷️ Promovendo ${imageName}: ${sourceTag} -> ${targetTag}"
+                        
+                        // 1. Renomeia (Tag)
+                        sh "docker tag ${REGISTRY}/${imageName}:${sourceTag} ${REGISTRY}/${imageName}:${targetTag}"
+                        
+                        // 2. Envia (Push)
+                        sh "docker push ${REGISTRY}/${imageName}:${targetTag}"
+                    }
+                }
+            }
+        }
+    }
+}
