@@ -12,9 +12,18 @@ import RevisaoDados from '@/pages/claims/new/RevisaoDados'
 import Confirmacao from '@/pages/claims/new/Confirmacao'
 
 function App() {
+  // Pega a versão da variável de ambiente ou usa um padrão
+  const appVersion = import.meta.env.VITE_APP_VERSION || 'v1.0.0-dev';
+
   return (
     <>
       <div className="min-h-screen bg-neutral-50">
+        {/* --- INÍCIO: Barra de Versão (Requisito do Vídeo) --- */}
+        <div className="bg-slate-900 text-white text-xs py-1 text-center font-mono font-bold tracking-wider uppercase">
+          Versão do Sistema: <span className="text-yellow-400">{appVersion}</span>
+        </div>
+        {/* --- FIM: Barra de Versão --- */}
+
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/cpf" element={<InformeCPF />} />
