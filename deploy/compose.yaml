@@ -85,6 +85,7 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - PORT=3333
       - NODE_ENV=production
+      - APP_VERSION=${IMAGE_TAG:-latest}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - UPLOAD_PROVIDER=${UPLOAD_PROVIDER:-local}
       - UPLOAD_LOCAL_PATH=/app/uploads

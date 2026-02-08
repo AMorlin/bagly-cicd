@@ -215,13 +215,33 @@ A versão é injetada no build via `--build-arg APP_VERSION`:
 1. **New Item** → Pipeline
 2. Nome: `bagly-promote`
 3. Marcar **This project is parameterized**
-4. **Pipeline from SCM** → Git
-5. URL: `https://github.com/SEU-USUARIO/bagly-cicd.git`
-6. Credentials: `github-credentials`
-7. Branch: `*/main`
-8. **Script Path**: `Jenkinsfile.promote`
+4. Adicionar os parâmetros manualmente:
 
-> Os parâmetros (`TAG` e `ENVIRONMENT`) são definidos automaticamente pelo `Jenkinsfile.promote`.
+   **Parâmetro 1 - TAG:**
+   - Clique em **Add Parameter** → **String Parameter**
+   - Name: `TAG`
+   - Default Value: (deixar vazio)
+   - Description: `Tag da versão a ser promovida (ex: v1.0.5)`
+
+   **Parâmetro 2 - ENVIRONMENT:**
+   - Clique em **Add Parameter** → **Choice Parameter**
+   - Name: `ENVIRONMENT`
+   - Choices (uma por linha):
+     ```
+     DEV
+     STG
+     PROD
+     ```
+   - Description: `Ambiente de destino da promoção`
+
+5. **Pipeline from SCM** → Git
+6. URL: `https://github.com/SEU-USUARIO/bagly-cicd.git`
+7. Credentials: `github-credentials`
+8. Branch: `*/main`
+9. **Script Path**: `Jenkinsfile.promote`
+10. **Salvar**
+
+Após salvar, o botão **Build with Parameters** (Construir com parâmetros) estará disponível.
 
 ### 3.2 Parâmetros do pipeline
 

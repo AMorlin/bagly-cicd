@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import Home from '@/pages/Home'
@@ -11,9 +12,18 @@ import ConteOQueAconteceu from '@/pages/claims/new/ConteOQueAconteceu'
 import RevisaoDados from '@/pages/claims/new/RevisaoDados'
 import Confirmacao from '@/pages/claims/new/Confirmacao'
 
-const appVersion = import.meta.env.VITE_APP_VERSION || 'dev'
+const fallbackVersion = import.meta.env.VITE_APP_VERSION || 'dev'
 
 function App() {
+  const [appVersion, setAppVersion] = useState(fallbackVersion)
+
+  useEffect(() => {
+    fetch('/api/version')
+      .then(res => res.json())
+      .then(data => setAppVersion(data.version))
+      .catch(() => setAppVersion(fallbackVersion))
+  }, [])
+
   return (
     <>
       <div className="min-h-screen bg-neutral-50">
