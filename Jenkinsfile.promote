@@ -59,11 +59,11 @@ pipeline {
                         echo "Verificando se a imagem base ${tag} existe no registry..."
 
                         def backendExists = sh(
-                            script: "docker manifest inspect ${BACKEND_IMAGE}:${tag} > /dev/null 2>&1",
+                            script: "docker pull ${BACKEND_IMAGE}:${tag}",
                             returnStatus: true
                         )
                         def frontendExists = sh(
-                            script: "docker manifest inspect ${FRONTEND_IMAGE}:${tag} > /dev/null 2>&1",
+                            script: "docker pull ${FRONTEND_IMAGE}:${tag}",
                             returnStatus: true
                         )
 
@@ -79,11 +79,11 @@ pipeline {
                         echo "Verificando se a tag dev-${tag} existe no registry..."
 
                         def backendDev = sh(
-                            script: "docker manifest inspect ${BACKEND_IMAGE}:dev-${tag} > /dev/null 2>&1",
+                            script: "docker pull ${BACKEND_IMAGE}:dev-${tag}",
                             returnStatus: true
                         )
                         def frontendDev = sh(
-                            script: "docker manifest inspect ${FRONTEND_IMAGE}:dev-${tag} > /dev/null 2>&1",
+                            script: "docker pull ${FRONTEND_IMAGE}:dev-${tag}",
                             returnStatus: true
                         )
 
@@ -99,11 +99,11 @@ pipeline {
                         echo "Verificando se a tag stg-${tag} existe no registry..."
 
                         def backendStg = sh(
-                            script: "docker manifest inspect ${BACKEND_IMAGE}:stg-${tag} > /dev/null 2>&1",
+                            script: "docker pull ${BACKEND_IMAGE}:stg-${tag}",
                             returnStatus: true
                         )
                         def frontendStg = sh(
-                            script: "docker manifest inspect ${FRONTEND_IMAGE}:stg-${tag} > /dev/null 2>&1",
+                            script: "docker pull ${FRONTEND_IMAGE}:stg-${tag}",
                             returnStatus: true
                         )
 
