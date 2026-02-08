@@ -138,7 +138,7 @@ A imagem `bagly-jenkins` inclui todas as ferramentas necessárias:
 5. Configurar credenciais em **Manage Jenkins → Credentials**:
 
 | ID                    | Tipo              | Descrição            |
-|-----------------------|------|------------|----------------------|
+|-----------------------|-------------------|----------------------|
 | `github-credentials`  | Username/Password | Usuário GitHub + PAT |
 | `sonar-token`         | Secret text       | Token do SonarQube   |
 
@@ -179,7 +179,7 @@ A imagem `bagly-jenkins` inclui todas as ferramentas necessárias:
 ### 2.2 Stages do Pipeline
 
 | # | Stage            | Descrição              | Falha se...       |
-|---|------------------|-----------|------------|-------------------|
+|---|------------------|------------------------|-------------------|
 | 1 | Checkout         | Clone do repositório   | -                 |
 | 2 | Build            | npm ci + npm run build | Build falhar      |
 | 3 | Unit Tests       | npm run test:coverage  | Testes falharem   |
