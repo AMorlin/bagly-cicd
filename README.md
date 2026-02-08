@@ -21,29 +21,29 @@ Plataforma de reclamações de bagagens danificadas em voos aéreos, com pipelin
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                     PIPELINE CI (Jenkinsfile)                     │
+│                     PIPELINE CI (Jenkinsfile)                    │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1.Checkout ─► 2.Build ─► 3.Tests ─► 4.Sonar ─► 5.Trivy Repo    │
+│  1.Checkout ─► 2.Build ─► 3.Tests ─► 4.Sonar ─► 5.Trivy Repo     │
 │                                         │            │           │
 │                                         ▼            ▼           │
 │                                   Coverage≥50%?  HIGH/CRIT?      │
 │                                         │            │           │
-│  6.Docker Build ─► 7.Trivy Image ─► 8.Push & Tag (main only)    │
+│  6.Docker Build ─► 7.Trivy Image ─► 8.Push & Tag (main only)     │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────┐
-│              PIPELINE DE PROMOÇÃO (Jenkinsfile.promote)           │
+│              PIPELINE DE PROMOÇÃO (Jenkinsfile.promote)          │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  Parâmetros: TAG (ex: v1.0.5) + ENVIRONMENT (DEV/STG/PROD)      │
+│  Parâmetros: TAG (ex: v1.0.5) + ENVIRONMENT (DEV/STG/PROD)       │
 │                                                                  │
-│  1. Validar Parâmetros ─► 2. Validar Cadeia ─► 3. Promover      │
+│  1. Validar Parâmetros ─► 2. Validar Cadeia ─► 3. Promover       │
 │                                                                  │
-│  Cadeia obrigatória:  DEV ──► STG ──► PROD                      │
+│  Cadeia obrigatória:  DEV ──► STG ──► PROD                       │
 │                                                                  │
-│  Tags geradas:  dev-v1.0.5  │  stg-v1.0.5  │  prod-v1.0.5      │
+│  Tags geradas:  dev-v1.0.5  │  stg-v1.0.5  │  prod-v1.0.5        │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -119,12 +119,12 @@ docker compose --env-file .env up -d --build
 
 A imagem `bagly-jenkins` inclui todas as ferramentas necessárias:
 
-| Ferramenta | Uso |
-|------------|-----|
-| Docker CLI | Build e push de imagens |
-| Trivy | Scan de vulnerabilidades |
-| Node.js 20 | Build do projeto |
-| Plugins | Git, Docker, SonarQube, etc (pré-instalados) |
+| Ferramenta |                   Uso                        |
+|------------|----------------------------------------------|
+| Docker CLI | Build e push de imagens                      |
+| Trivy      | Scan de vulnerabilidades                     |
+| Node.js 20 | Build do projeto                             |
+| Plugins    | Git, Docker, SonarQube, etc (pré-instalados) |
 
 ### 1.4 Configurar Jenkins
 
@@ -137,10 +137,10 @@ A imagem `bagly-jenkins` inclui todas as ferramentas necessárias:
 4. Criar usuário administrador
 5. Configurar credenciais em **Manage Jenkins → Credentials**:
 
-| ID | Tipo | Descrição |
-|----|------|-----------|
-| `github-credentials` | Username/Password | Usuário GitHub + PAT |
-| `sonar-token` | Secret text | Token do SonarQube |
+| ID                    | Tipo              | Descrição            |
+|-----------------------|------|------------|----------------------|
+| `github-credentials`  | Username/Password | Usuário GitHub + PAT |
+| `sonar-token`         | Secret text       | Token do SonarQube   |
 
 6. Configurar SonarQube em **Manage Jenkins → System**:
    - Nome: `SonarQube`
@@ -178,16 +178,16 @@ A imagem `bagly-jenkins` inclui todas as ferramentas necessárias:
 
 ### 2.2 Stages do Pipeline
 
-| # | Stage | Descrição | Falha se... |
-|---|-------|-----------|-------------|
-| 1 | Checkout | Clone do repositório | - |
-| 2 | Build | npm ci + npm run build | Build falhar |
-| 3 | Unit Tests | npm run test:coverage | Testes falharem |
-| 4 | SonarQube Scan | Análise + Quality Gate | Cobertura < 50% |
-| 5 | Trivy Repo Scan | Scan do código fonte | HIGH ou CRITICAL |
-| 6 | Docker Build | Build das imagens | Build falhar |
-| 7 | Trivy Image Scan | Scan das imagens | HIGH ou CRITICAL |
-| 8 | Push & Tag | Push + tag Git | Somente em `main` |
+| # | Stage            | Descrição              | Falha se...       |
+|---|------------------|-----------|------------|-------------------|
+| 1 | Checkout         | Clone do repositório   | -                 |
+| 2 | Build            | npm ci + npm run build | Build falhar      |
+| 3 | Unit Tests       | npm run test:coverage  | Testes falharem   |
+| 4 | SonarQube Scan   | Análise + Quality Gate | Cobertura < 50%   |
+| 5 | Trivy Repo Scan  | Scan do código fonte   | HIGH ou CRITICAL  |
+| 6 | Docker Build     | Build das imagens      | Build falhar      |
+| 7 | Trivy Image Scan | Scan das imagens       | HIGH ou CRITICAL  |
+| 8 | Push & Tag       | Push + tag Git         | Somente em `main` |
 
 ### 2.3 Regras de Qualidade
 
@@ -225,18 +225,18 @@ A versão é injetada no build via `--build-arg APP_VERSION`:
 
 ### 3.2 Parâmetros do pipeline
 
-| Parâmetro | Tipo | Valores | Exemplo |
-|-----------|------|---------|---------|
-| `TAG` | String | Versão semântica | `v1.0.5` |
-| `ENVIRONMENT` | Choice | `DEV`, `STG`, `PROD` | `STG` |
+| Parâmetro     | Tipo   | Valores              | Exemplo  |
+|---------------|--------|----------------------|----------|
+| `TAG`         | String | Versão semântica     | `v1.0.5` |
+| `ENVIRONMENT` | Choice | `DEV`, `STG`, `PROD` | `STG`    |
 
 ### 3.3 Tags geradas por ambiente
 
-| Ambiente | Tag gerada | Origem |
-|----------|------------|--------|
-| DEV | `dev-v1.0.5` | `v1.0.5` (tag original) |
-| STG | `stg-v1.0.5` | `dev-v1.0.5` |
-| PROD | `prod-v1.0.5` | `stg-v1.0.5` |
+| Ambiente | Tag gerada    | Origem                  |
+|----------|---------------|-------------------------|
+| DEV      | `dev-v1.0.5`  | `v1.0.5` (tag original) |
+| STG      | `stg-v1.0.5`  | `dev-v1.0.5`            |
+| PROD     | `prod-v1.0.5` | `stg-v1.0.5`            |
 
 ### 3.4 Cadeia de promoção obrigatória
 
@@ -312,12 +312,12 @@ docker compose --env-file .env up -d
 
 ### 4.3 Acessar aplicação
 
-| Serviço | URL | Descrição |
-|---------|-----|-----------|
-| Frontend | http://localhost:3000 | Aplicação web (versão exibida no topo) |
-| Backend API | http://localhost:3333 | API REST |
-| Versão (API) | http://localhost:3333/api/version | Retorna a versão da imagem |
-| Health Check | http://localhost:3333/api/health | Status da API |
+| Serviço      | URL | Descrição                                                             |
+|--------------|-----------------------------------|-----------------------------------------|
+| Frontend     | http://localhost:3000             | Aplicação web (versão exibida no topo)  |
+| Backend API  | http://localhost:3333             | API REST                                |
+| Versão (API) | http://localhost:3333/api/version | Retorna a versão da imagem              |
+| Health Check | http://localhost:3333/api/health  | Status da API                           |
 
 ### 4.4 Atualizar para nova versão
 
@@ -377,15 +377,15 @@ npm run test:coverage
 
 ## 7. Portas
 
-| Serviço | Porta | Stack |
-|---------|-------|-------|
-| Frontend | 3000 | Deploy |
-| Backend | 3333 | Deploy |
-| PostgreSQL (app) | 5432 | Deploy |
-| Redis | 6379 | Deploy |
-| Jenkins | 8080 | Infra |
-| SonarQube | 9000 | Infra |
-| Registry | 5000 | Infra |
+| Serviço          | Porta | Stack  |
+|------------------|-------|--------|
+| Frontend         | 3000  | Deploy |
+| Backend          | 3333  | Deploy |
+| PostgreSQL (app) | 5432  | Deploy |
+| Redis            | 6379  | Deploy |
+| Jenkins          | 8080  | Infra  |
+| SonarQube        | 9000  | Infra  |
+| Registry         | 5000  | Infra  |
 
 ## 8. Troubleshooting
 
@@ -446,11 +446,11 @@ docker rmi $(docker images -q localhost:5000/bagly-*)
 
 ## Equipe
 
-| Nome | Papel |
-|------|-------|
-| [Nome 1] | [Papel] |
-| [Nome 2] | [Papel] |
-| [Nome 3] | [Papel] |
+| Nome              |
+|-------------------|
+| Alexandre Morlin  |
+| Daniel Azevedo    |
+
 
 ## Licença
 
