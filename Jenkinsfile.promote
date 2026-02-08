@@ -188,4 +188,3 @@ pipeline {
             echo "Pipeline de promoção falhou! Verifique os logs acima."
         }
     }
-}
