@@ -12,7 +12,7 @@ export default function Home() {
         </div>
 
         <h1 className="mb-4 text-2xl font-bold text-neutral-900">
-          Sentimos muito pelo o ocorrido!
+          Trabalho de CICD - Turma 3 - DevOps
         </h1>
 
         <p className="mb-8 max-w-sm text-neutral-700">
