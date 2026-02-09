@@ -188,38 +188,30 @@ pipeline {
         }
 
         // =============================================
-        // STAGE 7: Trivy Image Scan
+        // STAGE 7: Trivy Image Scan (sequencial para evitar lock)
         // =============================================
         stage('Trivy Image Scan') {
-            parallel {
-                stage('Scan Frontend Image') {
-                    steps {
-                        sh """
-                            echo "Scanning frontend image for vulnerabilities..."
-                            trivy image \
-                                --exit-code 1 \
-                                --severity HIGH,CRITICAL \
-                                --ignore-unfixed \
-                                --no-progress \
-                                --format table \
-                                ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                        """
-                    }
-                }
-                stage('Scan Backend Image') {
-                    steps {
-                        sh """
-                            echo "Scanning backend image for vulnerabilities..."
-                            trivy image \
-                                --exit-code 1 \
-                                --severity HIGH,CRITICAL \
-                                --ignore-unfixed \
-                                --no-progress \
-                                --format table \
-                                ${BACKEND_IMAGE}:${IMAGE_TAG}
-                        """
-                    }
-                }
+            steps {
+                sh """
+                    echo "Scanning backend image for vulnerabilities..."
+                    trivy image \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --no-progress \
+                        --format table \
+                        ${BACKEND_IMAGE}:${IMAGE_TAG}
+                """
+                sh """
+                    echo "Scanning frontend image for vulnerabilities..."
+                    trivy image \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --no-progress \
+                        --format table \
+                        ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                """
             }
         }
 
