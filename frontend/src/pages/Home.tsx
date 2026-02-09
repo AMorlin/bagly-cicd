@@ -12,12 +12,12 @@ export default function Home() {
         </div>
 
         <h1 className="mb-4 text-2xl font-bold text-neutral-900">
-          Trabalho de CICD - Turma 3 - DevOps
+          Sentimos muito pelo o ocorrido!
         </h1>
 
         <p className="mb-8 max-w-sm text-neutral-700">
           Estamos aqui para ajudar você a registrar e acompanhar sua reclamação
-          de bagagem danificada.
+          de bagagem danificada.  
         </p>
 
         <div className="flex w-full max-w-sm flex-col gap-4">
